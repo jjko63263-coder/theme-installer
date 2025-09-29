@@ -1,14 +1,70 @@
-opyright (c) [2025] shivam. All rights reserved.
+#!/bin/bash
 
-This project, including all files, code, scripts, and documentation, is the proprietary work of Jishnu.
+# =======================================
+#   SHIVAM Blueprints - Auto Install
+# =======================================
 
-Permission is NOT granted to any person or entity to:
-- Use this project for any purpose, commercial or non-commercial.
-- Copy, modify, merge, publish, distribute, sublicense, or sell copies of this project.
-- Create derivative works based on this project.
+set -e
+trap 'echo "❌ Error occurred at line $LINENO. Exiting..."; exit 1' ERR
 
-This project is provided "as is" without any warranties or guarantees. The copyright holder (Jishnu) shall not be liable for any claims, damages, or other liabilities arising from the use or inability to use this project.
+# --- Logo Banner ---
+logo_banner() {
+cat << "EOF"
+   _____   _    _   _____  __      __             __  __ 
+  / ____| | |  | | |_   _| \ \    / /     /\     |  \/  |
+ | (___   | |__| |   | |    \ \  / /     /  \    | \  / |
+  \___ \  |  __  |   | |     \ \/ /     / /\ \   | |\/| |
+  ____) | | |  | |  _| |_     \  /     / ____ \  | |  | |
+ |_____/  |_|  |_| |_____|     \/     /_/    \_\ |_|  |_|
+EOF
+}
 
-For permission to use this project, contact Jishnu at [your email or contact info, if you want to add it].
+# --- Root Check ---
+if [ "$EUID" -ne 0 ]; then
+    echo "⚠️ Please run this script as root (use sudo)."
+    exit 1
+fi
 
-All other rights are expressly reserved.
+clear
+logo_banner
+echo ">>> 🚀 Starting SHIVAM Blueprints Setup..."
+
+# Step 1: Install Node.js 20.x
+echo ">>> Installing Node.js 20.x..."
+apt-get install -y ca-certificates curl gnupg
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | \
+  gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | \
+  tee /etc/apt/sources.list.d/nodesource.list
+apt-get update
+apt-get install -y nodejs
+
+# Step 2: Install Yarn & dependencies
+echo ">>> Installing dependencies..."
+npm i -g yarn
+apt install -y zip unzip git curl wget
+
+# Step 3: Setup in Pterodactyl directory
+cd /var/www/pterodactyl || { echo "❌ Pterodactyl directory not found!"; exit 1; }
+yarn
+
+# Step 4: Download SHIVAM Hosting release
+echo ">>> Downloading latest SHIVAM Hosting release..."
+wget "$(curl -s https://api.github.com/repos/BlueprintFramework/framework/releases/latest | \
+grep 'browser_download_url' | cut -d '"' -f 4)" -O release.zip
+
+echo ">>> Extracting release files..."
+unzip -o release.zip
+
+# Step 5: Run blueprint.sh
+if [ ! -f "blueprint.sh" ]; then
+    echo "❌ Error: blueprint.sh not found in release package."
+    exit 1
+fi
+
+chmod +x blueprint.sh
+echo ">>> Running blueprint.sh for SHIVAM Blueprints..."
+bash blueprint.sh
+
+echo "✅ SHIVAM Blueprints setup completed successfully!"
