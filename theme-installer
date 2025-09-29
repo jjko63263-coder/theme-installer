@@ -51,4 +51,5 @@ php artisan queue:restart
 php artisan up
 
 # done
-clear
+
+
